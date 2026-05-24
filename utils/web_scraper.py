@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+import socket
 import time
 import xml.etree.ElementTree as ET
 from typing import Any
@@ -85,6 +86,10 @@ FOOD_INDICATORS = {
 }
 
 
+class ScraperInputError(RuntimeError):
+    """Raised when scraper input is valid in shape but unusable in practice."""
+
+
 def validate_url(url: str) -> bool:
     try:
         parsed = urlparse(url)
@@ -95,6 +100,18 @@ def validate_url(url: str) -> bool:
 
 def normalize_base_url(url: str) -> str:
     return url.rstrip("/")
+
+
+def resolve_hostname_or_raise(url: str) -> None:
+    hostname = urlparse(url).hostname
+    if not hostname:
+        raise ScraperInputError("Could not determine hostname from the URL.")
+    try:
+        socket.gethostbyname(hostname)
+    except socket.gaierror as exc:
+        raise ScraperInputError(
+            f"Domain could not be resolved: `{hostname}`. Check for a typo in the website URL."
+        ) from exc
 
 
 def is_likely_recipe_url(url: str) -> bool:
@@ -613,6 +630,7 @@ def scrape_recipes_from_website(
 
     if not validate_url(base_url):
         return []
+    resolve_hostname_or_raise(base_url)
 
     try:
         recipe_urls = _discover_recipe_urls(base_url, max_urls=max_recipes * 6)

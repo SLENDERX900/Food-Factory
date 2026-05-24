@@ -10,7 +10,7 @@ import pandas as pd
 import streamlit as st
 
 from utils.sitemap_memory import clear_all_urls, get_processed_count
-from utils.web_scraper import scrape_recipes_from_website_with_memory, validate_url
+from utils.web_scraper import ScraperInputError, scrape_recipes_from_website_with_memory, validate_url
 
 BENEFITS = [
     "Quick Weeknight",
@@ -158,6 +158,8 @@ def render_intake() -> None:
                                 max_recipes=max_recipes,
                                 use_processed_memory=use_memory,
                             )
+                        except ScraperInputError as exc:
+                            st.error(str(exc))
                         except Exception as exc:
                             st.error(f"Scraping failed: {exc}")
                             with st.expander("Debug details"):
