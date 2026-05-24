@@ -222,9 +222,8 @@ def store_trending_pins(pins: list[dict]) -> int:
 
 
 def query_similar_trends(query_text: str, top_k: int = 5) -> list[dict]:
-    """Query similar trends with error handling for disk issues."""
-    if not query_text.strip():
-        return []
+    """Backward-compatible wrapper for older imports/callers."""
+    return query_similar_market_signals(query_text, top_k=top_k)
 
 
 def query_similar_market_signals(query_text: str, top_k: int = 8) -> list[dict]:
@@ -247,3 +246,11 @@ def query_similar_market_signals(query_text: str, top_k: int = 8) -> list[dict]:
         if not IS_STREAMLIT_CLOUD:
             _force_clear_db_directory()
         return []
+
+
+__all__ = [
+    "store_market_signals",
+    "store_trending_pins",
+    "query_similar_market_signals",
+    "query_similar_trends",
+]
