@@ -37,6 +37,7 @@ def _init_state() -> None:
         "scraped_recipes": [],
         "scrape_source_url": "",
         "scrape_message": "",
+        "selected_recipe_metadata": {},
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -58,6 +59,7 @@ def _clear_batch() -> None:
         "scraped_recipes": [],
         "scrape_source_url": "",
         "scrape_message": "",
+        "selected_recipe_metadata": {},
     }.items():
         st.session_state[key] = value
 
@@ -74,6 +76,10 @@ def _load_selected(selections: list[dict]) -> None:
         st.session_state[f"ing_{i}"] = recipe.get("ingredients", "")
         st.session_state[f"benefit_sel_{i}"] = recipe.get("benefit", BENEFITS[0])
 
+    st.session_state.selected_recipe_metadata = {
+        f"{recipe.get('name', '').strip().lower()}::{recipe.get('url', '').strip()}": recipe.copy()
+        for recipe in selections
+    }
     st.session_state.recipe_data = selections.copy()
     st.session_state.num_recipes = max(len(selections), 1)
     st.session_state.batch_locked = False
@@ -235,8 +241,16 @@ def render_intake() -> None:
         if not valid:
             st.error("Add at least 1 recipe name before locking.")
         else:
-            st.session_state.recipes = valid
-            st.session_state.recipe_data = valid
+            metadata_map = st.session_state.get("selected_recipe_metadata", {})
+            enriched = []
+            for recipe in valid:
+                key = f"{recipe.get('name', '').strip().lower()}::{recipe.get('url', '').strip()}"
+                base = metadata_map.get(key, {}).copy()
+                base.update(recipe)
+                enriched.append(base)
+
+            st.session_state.recipes = enriched
+            st.session_state.recipe_data = enriched
             st.session_state.batch_locked = True
             st.session_state.ai_generated = False
             st.session_state.hooks = {}
@@ -244,7 +258,7 @@ def render_intake() -> None:
             st.session_state.hook_packages = {}
             st.session_state.pin_descriptions = {}
             with col_status:
-                st.success(f"Batch locked with {len(valid)} recipe(s).")
+                st.success(f"Batch locked with {len(enriched)} recipe(s).")
 
     if st.session_state.batch_locked and st.session_state.get("recipes"):
         with col_status:

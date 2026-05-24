@@ -13,6 +13,16 @@ USER_AGENT = "SignalFactory/1.0 (marketing research tool)"
 BASE_HEADERS = {"User-Agent": USER_AGENT}
 
 
+def build_recipe_reddit_query(recipe: dict[str, Any], storyline: str = "") -> str:
+    parts = [
+        recipe.get("name", ""),
+        recipe.get("benefit", ""),
+        recipe.get("ingredient_names", ""),
+        storyline,
+    ]
+    return " ".join(part.strip() for part in parts if part and str(part).strip()).strip()
+
+
 def scrape_reddit_posts(
     query: str,
     *,

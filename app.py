@@ -41,6 +41,8 @@ DEFAULTS = {
     "ai_generated": False,
     "active_tool": "Pinterest Studio",
     "reddit_posts": [],
+    "reddit_drafts": [],
+    "active_voice_profile": "",
 }
 for key, value in DEFAULTS.items():
     if key not in st.session_state:
@@ -53,7 +55,19 @@ TOOLS = {
     },
     "Reddit Radar": {
         "icon": "💬",
-        "blurb": "Scrape relevant Reddit discussions and surface community language, angles, and demand signals.",
+        "blurb": "Research community language, generate Reddit-native drafts, and shape more human content angles.",
+    },
+    "Scheduler Hub": {
+        "icon": "🗓️",
+        "blurb": "Run the cross-platform publishing queue for Pinterest scheduling and Reddit post delivery.",
+    },
+    "Voice Lab": {
+        "icon": "🧠",
+        "blurb": "Train reusable tone, story, and lingo profiles that shape content across every platform.",
+    },
+    "Content Planner": {
+        "icon": "🧩",
+        "blurb": "Turn recipes, voice profiles, and campaign intent into a structured cross-platform posting plan.",
     },
 }
 
@@ -62,6 +76,9 @@ from components.intake import render_intake
 from components.notion_sync import render_notion_sync
 from components.pin_generator import render_pin_generator
 from components.reddit_scraper import render_reddit_scraper
+from components.scheduler_hub import render_scheduler_hub
+from components.content_planner import render_content_planner
+from components.voice_lab import render_voice_lab
 
 st.markdown(
     """
@@ -71,6 +88,9 @@ st.markdown(
         <div style="font-size:30px;font-weight:700;color:#172554;">Signal Factory</div>
         <div style="font-size:15px;color:#334155;margin-top:4px;">
             Multi-platform marketing workflows for Pinterest, Reddit, and the next tools you add.
+        </div>
+        <div style="font-size:13px;color:#475569;margin-top:8px;">
+            Built around story, memory, platform lingo, and publishing rhythm instead of generic one-click AI output.
         </div>
     </div>
     """,
@@ -121,11 +141,18 @@ if active_tool == "Pinterest Studio":
         render_pin_generator()
     with tab4:
         render_notion_sync()
-else:
+elif active_tool == "Reddit Radar":
     col1, col2, col3 = st.columns(3)
     col1.metric("Posts in results", len(st.session_state.get("reddit_posts", [])))
     col2.metric("Subreddits surfaced", len({p.get('subreddit', '') for p in st.session_state.get("reddit_posts", []) if p.get('subreddit')}))
-    col3.metric("Saved query", 1 if st.session_state.get("reddit_last_query") else 0)
+    col3.metric("Drafts ready", len(st.session_state.get("reddit_drafts", [])))
 
     st.divider()
     render_reddit_scraper()
+else:
+    if active_tool == "Scheduler Hub":
+        render_scheduler_hub()
+    elif active_tool == "Content Planner":
+        render_content_planner()
+    else:
+        render_voice_lab()

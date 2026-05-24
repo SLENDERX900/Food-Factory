@@ -6,6 +6,7 @@ A Streamlit-powered multi-platform marketing workspace. The current toolset incl
 
 - **Pinterest Studio**: Automatically scrape recipes from your food blog website or manually enter recipe data
 - **Reddit Radar**: Scrape relevant Reddit posts to capture audience language and discussion themes
+- **Scheduler Hub**: Queue Pinterest and Reddit content with a shared publishing workflow
 
 **Live Demo**: https://pinterest-factory-example.streamlit.app/
 

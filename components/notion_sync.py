@@ -103,7 +103,7 @@ def _create_page(recipe_name: str, angle: str, hook: str, description: str, reci
 
 def render_notion_sync():
     st.subheader("Notion Tracker Sync")
-    st.caption("Push all generated pins to your Notion database as individual rows.")
+    st.caption("Push all generated pins to your Notion database as individual rows. Use Scheduler Hub for the shared publishing queue.")
 
     # ── Auth check ────────────────────────────────────────────────────────────
     auth_ok, auth_msg = _check_notion_auth()
@@ -285,9 +285,15 @@ Capitalisation matters. Copy the names exactly as shown.
 | `Hook` | **Text** (Rich text) | The pin hook text |
 | `Angle` | **Select** | Dynamic angles based on recipe content (e.g., Lightning-Fast, Protein-Packed, Minimal-Cleanup) |
 | `Description` | **Text** (Rich text) | SEO description |
-| `Status` | **Select** | Add options: To Canva, In Canva, Scheduled, Posted |
+| `Status` | **Select** | Add options: To Canva, In Canva, Queued, Reminder Set, Scheduled, Posted, Needs Review |
 | `Recipe URL` | **URL** | Recipe page link |
 | `Scheduled At` | **Date** | Optional but recommended for Pinterest scheduling sync |
+| `Platform` | **Select** | Pinterest, Reddit |
+| `Destination` | **Text** (Rich text) | Board or subreddit |
+| `Job ID` | **Text** (Rich text) | Internal scheduler job id |
+| `Post Mode` | **Select** | Auto, Manual Reminder |
+| `Platform Post ID` | **Text** (Rich text) | Pinterest response id if available |
+| `Last Error` | **Text** (Rich text) | Sync or scheduling error details |
 
 ---
 
@@ -316,8 +322,11 @@ _Angles are determined by recipe characteristics + Pinterest trends_
 **5. For `Status` Select — add these options:**
 - `To Canva`
 - `In Canva`
+- `Queued`
+- `Reminder Set`
 - `Scheduled`
 - `Posted`
+- `Needs Review`
 
 ---
 

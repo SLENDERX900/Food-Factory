@@ -1,9 +1,8 @@
 """
-STEP 2: Free RAG Memory (ChromaDB)
-Local ChromaDB memory for Pinterest trend context with disk space management.
-Uses Hugging Face all-MiniLM-L6-v2 model for embeddings.
+Market-signal RAG memory.
 
-For Streamlit Cloud: Uses ephemeral in-memory mode to avoid disk space errors.
+Stores Pinterest and Reddit language patterns so generation can reuse authentic
+phrasing without sounding templated.
 """
 
 from __future__ import annotations
@@ -20,7 +19,7 @@ from sentence_transformers import SentenceTransformer
 logger = logging.getLogger(__name__)
 
 DB_DIR = Path("data/chroma")
-COLLECTION_NAME = "pinterest_trends"
+COLLECTION_NAME = "market_signals"
 EMBED_MODEL = "all-MiniLM-L6-v2"
 MAX_COLLECTION_SIZE = 200  # Reduced from 500 for tighter memory control
 
@@ -152,13 +151,12 @@ def _get_collection():
     return _collection
 
 
-def store_trending_pins(pins: list[dict]) -> int:
-    """Store pins in ChromaDB with disk space protection."""
-    if not pins:
+def store_market_signals(signals: list[dict], *, platform: str) -> int:
+    """Store market signals in ChromaDB with platform metadata."""
+    if not signals:
         return 0
     
-    # Limit pins to prevent memory bloat
-    pins = pins[:50]  # Max 50 pins per batch
+    signals = signals[:75]
     
     try:
         embedder = _get_embedder()
@@ -176,20 +174,33 @@ def store_trending_pins(pins: list[dict]) -> int:
         texts = []
         ids = []
         metadatas = []
-        for pin in pins:
-            text = f"{pin.get('title', '')}\n{pin.get('description', '')}".strip()
+        for signal in signals:
+            text = " ".join(
+                part for part in [
+                    signal.get("title", ""),
+                    signal.get("description", ""),
+                    signal.get("selftext", ""),
+                    signal.get("snippet", ""),
+                ] if part
+            ).strip()
             if not text:
                 continue
-            pid = hashlib.sha1(f"{text}|{pin.get('pin_url','')}".encode("utf-8")).hexdigest()
+            signal_id = hashlib.sha1(
+                f"{platform}|{text}|{signal.get('url','')}|{signal.get('pin_url','')}".encode("utf-8")
+            ).hexdigest()
             texts.append(text)
-            ids.append(pid)
+            ids.append(signal_id)
             metadatas.append(
                 {
-                    "title": pin.get("title", ""),
-                    "description": pin.get("description", ""),
-                    "image_url": pin.get("image_url", ""),
-                    "pin_url": pin.get("pin_url", ""),
-                    "source": pin.get("source", ""),
+                    "title": signal.get("title", ""),
+                    "description": signal.get("description", "") or signal.get("selftext", "")[:300],
+                    "image_url": signal.get("image_url", ""),
+                    "pin_url": signal.get("pin_url", "") or signal.get("url", ""),
+                    "source": signal.get("source", ""),
+                    "platform": platform,
+                    "subreddit": signal.get("subreddit", ""),
+                    "recipe_name": signal.get("recipe_name", ""),
+                    "query": signal.get("query", ""),
                 }
             )
         if not texts:
@@ -206,10 +217,18 @@ def store_trending_pins(pins: list[dict]) -> int:
         return 0
 
 
+def store_trending_pins(pins: list[dict]) -> int:
+    return store_market_signals(pins, platform="pinterest")
+
+
 def query_similar_trends(query_text: str, top_k: int = 5) -> list[dict]:
     """Query similar trends with error handling for disk issues."""
     if not query_text.strip():
         return []
+
+
+def query_similar_market_signals(query_text: str, top_k: int = 8) -> list[dict]:
+    return query_similar_trends(query_text, top_k=top_k)
     
     try:
         embedder = _get_embedder()

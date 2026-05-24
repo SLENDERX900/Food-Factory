@@ -170,6 +170,7 @@ def generate_hook_packages(
     model: str | None = None,
     *,
     platform: str = "pinterest",
+    storyline: str = "",
 ) -> list[dict[str, Any]]:
     trend_context = trend_context or []
     platform_key = platform if platform in PLATFORM_GUIDES else "pinterest"
@@ -181,8 +182,9 @@ def generate_hook_packages(
     for item in trend_context[:8]:
         title = item.get("title", "").strip()
         description = item.get("description", "").strip()
+        source = item.get("platform", "") or item.get("source", "")
         if title or description:
-            trend_lines.append(f"- {title[:120]} | {description[:160]}")
+            trend_lines.append(f"- [{source or 'signal'}] {title[:120]} | {description[:160]}")
     trend_block = "\n".join(trend_lines) if trend_lines else "- No external trend examples available"
 
     prompt = f"""Create {platform_key.title()} marketing copy packages for this recipe.
@@ -194,6 +196,9 @@ PLATFORM BEHAVIOR:
 - Hook style: {guide['hook_style']}
 - Description style: {guide['description_style']}
 - Native lingo ideas: {", ".join(lingo)}
+
+STORYLINE:
+{storyline or "No explicit storyline provided. Infer a credible, human narrative from the recipe and market signals."}
 
 RECIPE:
 - Name: {recipe.get("name", "")}
@@ -214,7 +219,9 @@ RULES:
 2. Reuse winning phrasing patterns from the trend signals without copying them.
 3. Make the hook specific to this recipe.
 4. Avoid generic filler, cheesy ad-speak, and robotic phrasing.
-5. Return only valid JSON.
+5. Make it feel authored, thoughtful, and lived-in rather than automated.
+6. If a storyline is provided, weave it in naturally instead of naming it mechanically.
+7. Return only valid JSON.
 
 JSON SHAPE:
 [
@@ -272,8 +279,15 @@ def generate_hooks(
     model: str | None = None,
     *,
     platform: str = "pinterest",
+    storyline: str = "",
 ) -> dict[str, str]:
-    packages = generate_hook_packages(recipe, trend_context=trend_context, model=model, platform=platform)
+    packages = generate_hook_packages(
+        recipe,
+        trend_context=trend_context,
+        model=model,
+        platform=platform,
+        storyline=storyline,
+    )
     return {item.get("angle", f"Angle-{idx}"): item.get("hook", "") for idx, item in enumerate(packages)}
 
 
@@ -283,8 +297,15 @@ def generate_description(
     model: str | None = None,
     *,
     platform: str = "pinterest",
+    storyline: str = "",
 ) -> str:
-    packages = generate_hook_packages(recipe, trend_context=trend_context, model=model, platform=platform)
+    packages = generate_hook_packages(
+        recipe,
+        trend_context=trend_context,
+        model=model,
+        platform=platform,
+        storyline=storyline,
+    )
     return (packages[0].get("description", "") if packages else "").strip()
 
 
