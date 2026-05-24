@@ -7,7 +7,6 @@ All output is saved back to st.session_state so edits persist across tabs.
 import streamlit as st
 from utils.groq_client import (
     check_connection,
-    generate_hooks,
     generate_description,
     generate_hook_packages,
     GROQ_MODEL,
@@ -18,7 +17,7 @@ from utils.rag_memory import store_trending_pins, query_similar_trends
 
 def render_ai_engine():
     st.subheader("AI Copy Engine")
-    st.caption("Generates 5 hooks + 1 SEO description per recipe using Groq API (Llama 3.1).")
+    st.caption("Generates trend-aware Pinterest hooks and descriptions using Groq with platform-native lingo.")
 
     # ── Groq connection check ───────────────────────────────────────────────
     with st.container():
@@ -113,8 +112,8 @@ def render_ai_engine():
             # Hooks + descriptions (JSON packages)
             try:
                 print(f"AI DEBUG: Sending to Groq with {len(trend_pins)} Pinterest pins + {len(rag_context) if rag_context else 0} RAG trends", flush=True)
-                packages = generate_hook_packages(recipe, trend_context=rag_context)
-                hooks = generate_hooks(recipe, trend_context=rag_context)
+                packages = generate_hook_packages(recipe, trend_context=rag_context, platform="pinterest")
+                hooks = {pkg.get("angle", f"Angle-{i}"): pkg.get("hook", "") for i, pkg in enumerate(packages)}
                 print(f"AI DEBUG: Groq generated {len(packages) if packages else 0} hook packages", flush=True)
                 st.session_state.hook_packages[name] = packages
                 # Clean hooks to remove conversational filler
@@ -159,7 +158,7 @@ def render_ai_engine():
 
             # Description
             try:
-                desc = generate_description(recipe, trend_context=rag_context)
+                desc = generate_description(recipe, trend_context=rag_context, platform="pinterest")
                 st.session_state.descriptions[name] = desc
             except Exception as e:
                 st.session_state.descriptions[name] = f"[Description generation failed: {e}]"

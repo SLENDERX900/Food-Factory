@@ -5,7 +5,7 @@ Pinterest scheduling + Notion status sync helpers.
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, time as dt_time, timedelta, timezone
 
 import requests
 
@@ -17,9 +17,26 @@ NOTION_TOKEN = os.getenv("NOTION_TOKEN", "")
 NOTION_API_VERSION = "2022-06-28"
 
 
-def build_schedule_slots(count: int, start_dt: datetime | None = None) -> list[datetime]:
-    base = start_dt or datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0) + timedelta(days=1)
-    return [base + timedelta(days=i) for i in range(count)]
+def build_schedule_slots(
+    count: int,
+    start_dt: datetime | None = None,
+    *,
+    posts_per_day: int = 1,
+    start_date: date | None = None,
+    first_hour_utc: int = 14,
+) -> list[datetime]:
+    base = start_dt
+    if base is None:
+        chosen_date = start_date or (datetime.now(timezone.utc) + timedelta(days=1)).date()
+        base = datetime.combine(chosen_date, dt_time(hour=first_hour_utc, tzinfo=timezone.utc))
+
+    slots: list[datetime] = []
+    spacing_hours = max(1, 12 // max(posts_per_day, 1))
+    for index in range(count):
+        day_offset = index // posts_per_day
+        slot_in_day = index % posts_per_day
+        slots.append(base + timedelta(days=day_offset, hours=slot_in_day * spacing_hours))
+    return slots
 
 
 def schedule_pin(title: str, description: str, link: str, image_url: str, publish_at: datetime) -> tuple[bool, str]:

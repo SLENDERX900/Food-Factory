@@ -76,7 +76,8 @@ def render_export():
     col1, col2, col3 = st.columns(3)
     col1.metric("Recipes", len(df["Recipe_Name"].unique()))
     col2.metric("Total hooks / rows", len(df))
-    col3.metric("Angles per recipe", len(ANGLES))
+    avg_angles = round(len(df) / max(len(df["Recipe_Name"].unique()), 1), 1)
+    col3.metric("Avg angles / recipe", avg_angles)
 
     st.divider()
 

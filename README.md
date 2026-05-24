@@ -1,10 +1,11 @@
-# Pinterest Factory
+# Signal Factory
 
-A Streamlit-powered dashboard for batch production of Pinterest pins from recipe content. This tool automates the creation of compelling pin titles, descriptions, and visual content for food blogs and recipe websites.
+A Streamlit-powered multi-platform marketing workspace. The current toolset includes Pinterest production workflows and Reddit research so you can scrape recipes, generate hooks, schedule pins, sync with Notion, and study community language in one place.
 
 ## Features
 
-- **Batch Intake**: Automatically scrape recipes from your food blog website or manually enter recipe data
+- **Pinterest Studio**: Automatically scrape recipes from your food blog website or manually enter recipe data
+- **Reddit Radar**: Scrape relevant Reddit posts to capture audience language and discussion themes
 
 **Live Demo**: https://pinterest-factory-example.streamlit.app/
 
@@ -245,4 +246,4 @@ For issues and questions:
 
 ---
 
-**Pinterest Factory** - Streamlining Pinterest content creation for food bloggers and content creators.
+**Signal Factory** - Building repeatable marketing workflows across Pinterest, Reddit, and the next channels you add.

@@ -6,6 +6,8 @@ Reads NOTION_TOKEN and NOTION_DATABASE_ID from .env
 
 import os
 import time
+from datetime import datetime, timedelta, timezone
+
 import requests
 import streamlit as st
 from utils.scheduler import build_schedule_slots, schedule_pin, update_notion_item_scheduled
@@ -190,25 +192,46 @@ def render_notion_sync():
             st.warning(f"Sync complete — {successes} succeeded, {failures} failed.")
 
     st.divider()
+    st.subheader("Pinterest Scheduling")
+    st.caption("Schedule pins to Pinterest and update the related Notion rows to `Scheduled`.")
+
+    total_packages = sum(len(st.session_state.get("hook_packages", {}).get(r["name"], [])) for r in recipes)
+    col_sched1, col_sched2, col_sched3 = st.columns(3)
+    with col_sched1:
+        default_date = (datetime.now(timezone.utc) + timedelta(days=1)).date()
+        schedule_start_date = st.date_input("Start date (UTC)", value=default_date, key="schedule_start_date")
+    with col_sched2:
+        posts_per_day = st.slider("Posts per day", min_value=1, max_value=6, value=2, step=1, key="posts_per_day")
+    with col_sched3:
+        first_hour = st.slider("First post hour UTC", min_value=0, max_value=23, value=14, step=1, key="first_post_hour_utc")
+
     if st.button("📅 Schedule Pins + Mark Notion Scheduled", use_container_width=True):
         packages = st.session_state.get("hook_packages", {})
         notion_pages = st.session_state.get("notion_pages", {})
+        pin_descriptions = st.session_state.get("pin_descriptions", {})
         schedule_log = []
-        slots = build_schedule_slots(5)
+        slots = build_schedule_slots(
+            max(total_packages, 1),
+            posts_per_day=posts_per_day,
+            start_date=schedule_start_date,
+            first_hour_utc=first_hour,
+        )
         idx = 0
         for recipe in recipes:
             name = recipe["name"]
             for pkg in packages.get(name, [])[:5]:
                 angle = pkg.get("angle", "")
                 hook = pkg.get("hook", "")
-                desc = pkg.get("description", "")
-                image_url = recipe.get("url", "")
-                ok, sched_msg = schedule_pin(hook, desc, recipe.get("url", ""), image_url, slots[idx % len(slots)])
+                desc = pin_descriptions.get(name, {}).get(angle) or pkg.get("description", "")
+                image_url = recipe.get("image_url", "") or recipe.get("url", "")
+                slot = slots[idx % len(slots)]
+                ok, sched_msg = schedule_pin(hook, desc, recipe.get("url", ""), image_url, slot)
                 if ok:
                     page_id = notion_pages.get(f"{name}::{angle}")
                     if page_id:
-                        n_ok, n_msg = update_notion_item_scheduled(page_id, slots[idx % len(slots)])
-                        schedule_log.append(f"{name} · {angle}: Pinterest scheduled ({sched_msg}); Notion {n_msg}")
+                        n_ok, n_msg = update_notion_item_scheduled(page_id, slot)
+                        status = n_msg if n_ok else f"update failed ({n_msg})"
+                        schedule_log.append(f"{name} · {angle}: Pinterest scheduled ({sched_msg}); Notion {status}")
                     else:
                         schedule_log.append(f"{name} · {angle}: Pinterest scheduled ({sched_msg}); Notion page missing")
                 else:
@@ -264,6 +287,7 @@ Capitalisation matters. Copy the names exactly as shown.
 | `Description` | **Text** (Rich text) | SEO description |
 | `Status` | **Select** | Add options: To Canva, In Canva, Scheduled, Posted |
 | `Recipe URL` | **URL** | Recipe page link |
+| `Scheduled At` | **Date** | Optional but recommended for Pinterest scheduling sync |
 
 ---
 
