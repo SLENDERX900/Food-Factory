@@ -1,4 +1,4 @@
-# Signal Factory
+# Food Factory
 
 A Streamlit-powered multi-platform marketing workspace. The current toolset includes Pinterest production workflows and Reddit research so you can scrape recipes, generate hooks, schedule pins, sync with Notion, and study community language in one place.
 
