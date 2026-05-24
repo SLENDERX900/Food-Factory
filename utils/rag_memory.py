@@ -228,8 +228,9 @@ def query_similar_trends(query_text: str, top_k: int = 5) -> list[dict]:
 
 
 def query_similar_market_signals(query_text: str, top_k: int = 8) -> list[dict]:
-    return query_similar_trends(query_text, top_k=top_k)
-    
+    if not query_text.strip():
+        return []
+
     try:
         embedder = _get_embedder()
         collection = _get_collection()
