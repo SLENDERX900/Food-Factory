@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import re
 import time
+import xml.etree.ElementTree as ET
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
@@ -29,10 +30,31 @@ DEFAULT_HEADERS = {
 RECIPE_PATH_HINTS = (
     "/recipe",
     "/recipes/",
+    "/recipe/",
     "/cook/",
     "/food/",
     "/dish/",
     "/meal/",
+)
+
+RECIPE_SITEMAP_HINTS = (
+    "recipe",
+    "recipes",
+    "post-sitemap",
+    "posts",
+)
+
+NON_RECIPE_URL_HINTS = (
+    "/tag/",
+    "/tags/",
+    "/category/",
+    "/categories/",
+    "/author/",
+    "/page/",
+    "/search/",
+    "/wp-content/",
+    "/feed",
+    "/index.php",
 )
 
 FOOD_INDICATORS = {
@@ -78,6 +100,41 @@ def normalize_base_url(url: str) -> str:
 def is_likely_recipe_url(url: str) -> bool:
     path = urlparse(url).path.lower()
     return any(hint in path for hint in RECIPE_PATH_HINTS) or any(word in path for word in FOOD_INDICATORS)
+
+
+def _looks_like_non_recipe_url(url: str) -> bool:
+    path = urlparse(url).path.lower()
+    if any(hint in path for hint in NON_RECIPE_URL_HINTS):
+        return True
+    slug = path.strip("/").split("/")
+    if not slug:
+        return True
+    # Archive/listing pages are usually very shallow.
+    if len(slug) <= 1 and not is_likely_recipe_url(url):
+        return True
+    return False
+
+
+def _score_recipe_url(url: str) -> int:
+    path = urlparse(url).path.lower()
+    score = 0
+    if any(hint in path for hint in RECIPE_PATH_HINTS):
+        score += 6
+    if any(word in path for word in FOOD_INDICATORS):
+        score += 4
+    if _looks_like_non_recipe_url(url):
+        score -= 8
+
+    slug_parts = [part for part in path.strip("/").split("/") if part]
+    if len(slug_parts) >= 2:
+        score += 2
+    if len(slug_parts) >= 3:
+        score += 1
+    if re.search(r"/\d{4}/\d{2}/", path):
+        score += 2
+    if path.count("-") >= 2:
+        score += 1
+    return score
 
 
 def is_valid_recipe_name(name: str) -> bool:
@@ -398,11 +455,127 @@ def fallback_homepage_scraping(base_url: str, max_recipes: int, headers: dict | 
     return recipes
 
 
+def _extract_xml_urls(xml_text: str) -> tuple[list[str], list[str]]:
+    page_urls: list[str] = []
+    sitemap_urls: list[str] = []
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError:
+        return page_urls, sitemap_urls
+
+    for element in root.iter():
+        tag = element.tag.lower()
+        if tag.endswith("loc") and element.text:
+            value = element.text.strip()
+            parent_tag = ""
+            parent = None
+            # ElementTree has no parent pointers, infer from root tag when possible.
+            if root.tag.lower().endswith("sitemapindex"):
+                parent_tag = "sitemap"
+            elif root.tag.lower().endswith("urlset"):
+                parent_tag = "url"
+            if parent_tag == "sitemap":
+                sitemap_urls.append(value)
+            else:
+                page_urls.append(value)
+    return page_urls, sitemap_urls
+
+
+def _common_sitemap_urls(base_url: str) -> list[str]:
+    parsed = urlparse(base_url)
+    origin = f"{parsed.scheme}://{parsed.netloc}"
+    return [
+        f"{origin}/robots.txt",
+        f"{origin}/sitemap.xml",
+        f"{origin}/sitemap_index.xml",
+        f"{origin}/wp-sitemap.xml",
+        f"{origin}/post-sitemap.xml",
+        f"{origin}/recipe-sitemap.xml",
+    ]
+
+
+def _discover_sitemap_urls(base_url: str, headers: dict | None = None) -> list[str]:
+    headers = headers or DEFAULT_HEADERS
+    discovered: list[str] = []
+    candidates = _common_sitemap_urls(base_url)
+
+    robots_url = candidates[0]
+    try:
+        response = requests.get(robots_url, headers=headers, timeout=15)
+        if response.ok:
+            for line in response.text.splitlines():
+                if line.lower().startswith("sitemap:"):
+                    sitemap_url = line.split(":", 1)[1].strip()
+                    if sitemap_url:
+                        discovered.append(sitemap_url)
+    except Exception:
+        pass
+
+    discovered.extend(candidates[1:])
+    return list(dict.fromkeys(discovered))
+
+
+def _discover_recipe_urls_from_xml(base_url: str, max_urls: int = 200, headers: dict | None = None) -> list[str]:
+    headers = headers or DEFAULT_HEADERS
+    sitemap_urls = _discover_sitemap_urls(base_url, headers=headers)
+    queue = list(sitemap_urls)
+    visited: set[str] = set()
+    recipe_candidates: list[str] = []
+
+    while queue and len(recipe_candidates) < max_urls * 3:
+        sitemap_url = queue.pop(0)
+        if sitemap_url in visited:
+            continue
+        visited.add(sitemap_url)
+        try:
+            response = requests.get(sitemap_url, headers=headers, timeout=20)
+            response.raise_for_status()
+        except Exception:
+            continue
+
+        page_urls, nested_sitemaps = _extract_xml_urls(response.text)
+        for nested in nested_sitemaps:
+            nested_lower = nested.lower()
+            if any(hint in nested_lower for hint in RECIPE_SITEMAP_HINTS):
+                queue.insert(0, nested)
+            else:
+                queue.append(nested)
+
+        for url in page_urls:
+            if validate_url(url):
+                recipe_candidates.append(url)
+
+    ranked_urls = sorted(
+        {url for url in recipe_candidates if not _looks_like_non_recipe_url(url)},
+        key=lambda item: (_score_recipe_url(item), len(urlparse(item).path)),
+        reverse=True,
+    )
+    ranked_urls = [url for url in ranked_urls if _score_recipe_url(url) >= 2]
+    return ranked_urls[:max_urls]
+
+
 def _discover_recipe_urls(base_url: str, max_urls: int = 200) -> list[str]:
-    tree = sitemap_tree_for_homepage(base_url)
-    pages = list(tree.all_pages())
-    urls = [page.url for page in pages if page.url and is_likely_recipe_url(page.url)]
-    return list(dict.fromkeys(urls))[:max_urls]
+    scored_urls: list[str] = []
+
+    try:
+        tree = sitemap_tree_for_homepage(base_url)
+        pages = list(tree.all_pages())
+        scored_urls.extend(page.url for page in pages if page.url)
+    except Exception as exc:
+        print(f"[SCRAPER] USP sitemap discovery failed for {base_url}: {exc}", flush=True)
+
+    try:
+        scored_urls.extend(_discover_recipe_urls_from_xml(base_url, max_urls=max_urls, headers=DEFAULT_HEADERS))
+    except Exception as exc:
+        print(f"[SCRAPER] XML sitemap discovery failed for {base_url}: {exc}", flush=True)
+
+    ranked_urls = sorted(
+        {url for url in scored_urls if validate_url(url)},
+        key=lambda item: (_score_recipe_url(item), len(urlparse(item).path)),
+        reverse=True,
+    )
+    filtered_urls = [url for url in ranked_urls if _score_recipe_url(url) >= 2]
+    return filtered_urls[:max_urls]
 
 
 def scrape_recipes_from_website(

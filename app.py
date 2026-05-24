@@ -1,5 +1,5 @@
 """
-Signal Factory dashboard.
+Food Factory dashboard.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ if CHROMA_DIR.exists():
 load_dotenv()
 
 st.set_page_config(
-    page_title="Signal Factory",
+    page_title="Food Factory",
     page_icon="🚀",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -85,7 +85,7 @@ st.markdown(
     <div style="padding:18px 20px;border-radius:18px;background:
     linear-gradient(135deg,#fff7ed 0%,#fef3c7 40%,#ecfccb 100%);
     border:1px solid rgba(15,23,42,.08);margin-bottom:18px;">
-        <div style="font-size:30px;font-weight:700;color:#172554;">Signal Factory</div>
+        <div style="font-size:30px;font-weight:700;color:#172554;">Food Factory</div>
         <div style="font-size:15px;color:#334155;margin-top:4px;">
             Multi-platform marketing workflows for Pinterest, Reddit, and the next tools you add.
         </div>

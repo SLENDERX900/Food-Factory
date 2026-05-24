@@ -7,14 +7,17 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+DEFAULT_STREAMLIT_URL = "https://my-food-factory.streamlit.app/"
+
 def wake_streamlit():
-    url = os.environ.get("STREAMLIT_URL", "").strip()
+    url = (
+        os.environ.get("STREAMLIT_URL", "").strip()
+        or os.environ.get("APP_URL", "").strip()
+        or DEFAULT_STREAMLIT_URL
+    )
     
-    # 1. Check if empty
-    if not url:
-        print("❌ CRITICAL: STREAMLIT_URL is NOT detected in environment variables!")
-        print("Please set STREAMLIT_URL in GitHub Secrets with your app URL (e.g., https://your-app.streamlit.app)")
-        sys.exit(1)
+    if url == DEFAULT_STREAMLIT_URL:
+        print(f"ℹ️ No STREAMLIT_URL provided, using default Food Factory URL: {DEFAULT_STREAMLIT_URL}")
     
     # Print the first 10 characters to verify it's working without exposing the whole URL
     print(f"🔗 URL detected (masked): {url[:10]}...")

@@ -247,4 +247,4 @@ For issues and questions:
 
 ---
 
-**Signal Factory** - Building repeatable marketing workflows across Pinterest, Reddit, and the next channels you add.
+**Food Factory** - Building repeatable marketing workflows across Pinterest, Reddit, and the next channels you add.

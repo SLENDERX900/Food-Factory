@@ -301,7 +301,7 @@ Capitalisation matters. Copy the names exactly as shown.
 
 **1. Create a new full-page database in Notion**
 - New page → `/table` → Full page
-- Name it: `Pinterest Factory`
+- Name it: `Food Factory`
 
 **2. Rename the default `Name` column to `Recipe Name`**
 - Click the column header → Rename
@@ -335,12 +335,12 @@ _Angles are determined by recipe characteristics + Pinterest trends_
 **1. Create an integration**
 - Go to [notion.so/my-integrations](https://www.notion.so/my-integrations)
 - Click `+ New integration`
-- Name: `Pinterest Factory`
+- Name: `Food Factory`
 - Capabilities: Read content, Update content, Insert content
 - Copy the **Internal Integration Token** → paste into `.env` as `NOTION_TOKEN`
 
 **2. Share the database with your integration**
-- Open your Pinterest Factory database in Notion
+- Open your Food Factory database in Notion
 - Click `...` (top right) → `Connections` → find your integration → connect it
 
 **3. Get the Database ID**
