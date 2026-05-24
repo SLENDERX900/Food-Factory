@@ -168,6 +168,15 @@ def format_duration(value: Any) -> str:
     return text
 
 
+def _schema_time_value(schema: dict[str, Any] | None, key: str) -> str:
+    if not schema:
+        return ""
+    raw = schema.get(key, "")
+    if not raw:
+        return ""
+    return format_duration(raw)
+
+
 def determine_benefit(name: str, time_text: str, ingredient_count: int | None, content: str) -> str:
     haystack = f"{name} {time_text} {content}".lower()
     if any(term in haystack for term in ("one pan", "one-pot", "sheet pan", "skillet")):
@@ -336,6 +345,13 @@ def _extract_method_snippet(scraper: Any) -> str:
     return str(instructions).strip()[:220]
 
 
+def _compose_time_value(prep_time: str, cook_time: str, total_time: str) -> str:
+    if total_time:
+        return total_time
+    joined = " / ".join(part for part in (prep_time, cook_time) if part)
+    return joined
+
+
 def extract_with_recipe_scrapers(url: str, headers: dict | None = None) -> dict[str, Any] | None:
     headers = headers or DEFAULT_HEADERS
     try:
@@ -380,6 +396,13 @@ def extract_with_recipe_scrapers(url: str, headers: dict | None = None) -> dict[
         except Exception:
             total_time = ""
 
+    if not prep_time:
+        prep_time = _schema_time_value(schema, "prepTime")
+    if not cook_time:
+        cook_time = _schema_time_value(schema, "cookTime")
+    if not total_time:
+        total_time = _schema_time_value(schema, "totalTime")
+
     title = title or _extract_title(soup, schema)
     if not is_valid_recipe_name(title):
         return None
@@ -392,7 +415,7 @@ def extract_with_recipe_scrapers(url: str, headers: dict | None = None) -> dict[
     meta_keywords = _meta_content(soup, name="keywords")
     og_title = _meta_content(soup, property="og:title")
 
-    time_value = total_time or " / ".join(part for part in (prep_time, cook_time) if part)
+    time_value = _compose_time_value(prep_time, cook_time, total_time)
     benefit = determine_benefit(title, time_value, ingredient_count, f"{description} {method_snippet}")
 
     return {
