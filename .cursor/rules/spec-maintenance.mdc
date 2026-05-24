@@ -1,0 +1,28 @@
+---
+description: Keep spec.md aligned with code and roadmap
+alwaysApply: true
+---
+
+# Spec maintenance rule (`spec.md`)
+
+Whenever you change this repo, keep `spec.md` accurate. The spec is a living document that should reflect **current behavior**, not just intent.
+
+## Update `spec.md` in the same change when you:
+- Add/remove a feature, step, or tab in the Streamlit workflow
+- Change any session state keys or the data contract between steps
+- Add/rename environment variables, secrets, or external integrations (Groq, Notion, scraping, etc.)
+- Change output formats (CSV columns, ZIP naming, pin dimensions/templates)
+- Introduce major dependencies or architectural shifts
+- Identify a new “known gap” or resolve an existing one
+
+## Minimum required spec edits (pick what applies)
+- Update **Scope / In scope today** to match reality
+- Update **Current architecture** and **data flow** if behavior changed
+- Update **Known gaps / tech debt** if you created or fixed issues
+- Update **Roadmap** if the change represents a milestone step forward
+
+## PR/commit checklist
+- If the change affects user-visible behavior: **spec updated**
+- If the change affects config/integrations: **spec updated**
+- If the change affects exports or contracts: **spec updated**
+
