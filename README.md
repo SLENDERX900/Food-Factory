@@ -8,7 +8,7 @@ A Streamlit-powered multi-platform marketing workspace. The current toolset incl
 - **Reddit Radar**: Scrape relevant Reddit posts to capture audience language and discussion themes
 - **Scheduler Hub**: Queue Pinterest and Reddit content with a shared publishing workflow
 
-**Live Demo**: https://pinterest-factory-example.streamlit.app/
+**Live Demo**: https://my-food-factory.streamlit.app/
 
 > **Try it out**: The live demo is fully functional! You can scrape recipes from any food blog and generate AI copy instantly.
 >
